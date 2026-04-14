@@ -1,0 +1,15 @@
+.idea/
+*.iml
+
+.m2-home/
+
+target/
+**/target/
+*.class
+*.log
+
+AssociationManagerVue/node_modules/
+AssociationManagerVue/dist/
+
+.DS_Store
+Thumbs.db
