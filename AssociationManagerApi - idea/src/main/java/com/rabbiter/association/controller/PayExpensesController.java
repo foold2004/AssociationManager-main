@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/payExpenses")
-public class PayExpensesController extends BaseController {
+public class PayExpensesController {
 
     protected static final Logger Log = LoggerFactory.getLogger(PayExpensesController.class);
 
@@ -38,11 +38,6 @@ public class PayExpensesController extends BaseController {
 
     @Autowired
     private TeamsService teamsService;
-
-    @RequestMapping("")
-    public String index() {
-        return "pages/PayExpenses";
-    }
 
     @GetMapping("/page")
     @ResponseBody
@@ -79,16 +74,15 @@ public class PayExpensesController extends BaseController {
         if (validResult != null) {
             return validResult;
         }
-        if (ObjectUtils.isEmpty(payExpenses.getTitle())) {
-            return R.warn("请输入消费标题");
-        }
         if (ObjectUtils.isEmpty(payExpenses.getTotal()) || payExpenses.getTotal() <= 0) {
-            return R.warn("请输入正确的消费金额");
+            return R.warn("请输入正确的支出金额");
+        }
+        if (ObjectUtils.isEmpty(payExpenses.getTitle())) {
+            return R.warn("请输入支出项目标题");
         }
 
         payExpenses.setId(IDUtils.makeIDByCurrent());
         payExpenses.setCreateTime(DateUtils.getNowDate());
-        payExpenses.setHandlerId(user.getId());
 
         Log.info("新增消费明细：{}", payExpenses);
         payExpensesService.add(payExpenses);
@@ -106,28 +100,20 @@ public class PayExpensesController extends BaseController {
             return R.warn("学生仅可查看消费明细，不能修改");
         }
 
-        PayExpenses oldExpense = payExpensesService.getOne(payExpenses.getId());
-        if (ObjectUtils.isEmpty(oldExpense)) {
+        PayExpenses old = payExpensesService.getOne(payExpenses.getId());
+        if (ObjectUtils.isEmpty(old)) {
             return R.warn("消费明细不存在");
         }
 
-        String teamId = ObjectUtils.isEmpty(payExpenses.getTeamId()) ? oldExpense.getTeamId() : payExpenses.getTeamId();
-        R validResult = validateExpensePermission(user, teamId);
+        R validResult = validateExpensePermission(user, old.getTeamId());
         if (validResult != null) {
             return validResult;
         }
-        if (ObjectUtils.isEmpty(payExpenses.getTitle())) {
-            return R.warn("请输入消费标题");
-        }
         if (ObjectUtils.isEmpty(payExpenses.getTotal()) || payExpenses.getTotal() <= 0) {
-            return R.warn("请输入正确的消费金额");
+            return R.warn("请输入正确的支出金额");
         }
-
         if (ObjectUtils.isEmpty(payExpenses.getCreateTime())) {
-            payExpenses.setCreateTime(oldExpense.getCreateTime());
-        }
-        if (ObjectUtils.isEmpty(payExpenses.getHandlerId())) {
-            payExpenses.setHandlerId(oldExpense.getHandlerId());
+            payExpenses.setCreateTime(old.getCreateTime());
         }
 
         Log.info("修改消费明细：{}", payExpenses);
@@ -146,18 +132,18 @@ public class PayExpensesController extends BaseController {
             return R.warn("学生仅可查看消费明细，不能删除");
         }
 
-        PayExpenses expense = payExpensesService.getOne(id);
-        if (ObjectUtils.isEmpty(expense)) {
+        PayExpenses payExpenses = payExpensesService.getOne(id);
+        if (ObjectUtils.isEmpty(payExpenses)) {
             return R.warn("消费明细不存在");
         }
 
-        R permissionResult = validateExpensePermission(user, expense.getTeamId());
-        if (permissionResult != null) {
-            return permissionResult;
+        R validResult = validateExpensePermission(user, payExpenses.getTeamId());
+        if (validResult != null) {
+            return validResult;
         }
 
-        Log.info("删除消费明细，ID：{}", id);
-        payExpensesService.delete(expense);
+        Log.info("删除消费明细，ID={}", id);
+        payExpensesService.delete(payExpenses);
         return R.success();
     }
 
@@ -172,9 +158,10 @@ public class PayExpensesController extends BaseController {
         if (ObjectUtils.isEmpty(teamId)) {
             return R.warn("请选择所属社团");
         }
+
         Teams team = teamsService.getOne(teamId);
         if (ObjectUtils.isEmpty(team)) {
-            return R.warn("社团信息不存在");
+            return R.warn("社团不存在");
         }
         if (operator.getType() == 1 && !operator.getId().equals(team.getManager())) {
             return R.warn("你只能维护自己负责社团的消费明细");

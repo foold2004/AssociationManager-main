@@ -1,11 +1,9 @@
 package com.rabbiter.association.controller;
 
-import com.rabbiter.association.entity.Notices;
 import com.rabbiter.association.entity.Users;
 import com.rabbiter.association.handle.CacheHandle;
-import com.rabbiter.association.msg.R;
 import com.rabbiter.association.msg.PageData;
-import com.rabbiter.association.service.NoticesService;
+import com.rabbiter.association.msg.R;
 import com.rabbiter.association.service.UsersService;
 import com.rabbiter.association.utils.IDUtils;
 import org.slf4j.Logger;
@@ -30,7 +28,7 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/")
-public class IndexController extends BaseController {
+public class IndexController {
 
     private static final Logger Log = LoggerFactory.getLogger(IndexController.class);
 
@@ -40,30 +38,8 @@ public class IndexController extends BaseController {
     @Autowired
     private CacheHandle cacheHandle;
 
-    @Autowired
-    private NoticesService noticesService;
-
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
-
-    @GetMapping("/sys/notices")
-    @ResponseBody
-    public R getNoticeList(String token) {
-        Users user = usersService.getOne(cacheHandle.getUserInfoCache(token));
-        if (ObjectUtils.isEmpty(user)) {
-            return R.error("登录信息不存在，请重新登录");
-        }
-
-        List<Notices> list;
-        if (user.getType() == 0) {
-            list = noticesService.getSysNotices();
-        } else if (user.getType() == 1) {
-            list = noticesService.getManNotices(user.getId());
-        } else {
-            list = noticesService.getMemNotices(user.getId());
-        }
-        return R.successData(list);
-    }
 
     @GetMapping("/demoAccounts")
     @ResponseBody
@@ -101,7 +77,7 @@ public class IndexController extends BaseController {
     @RequestMapping("/exit")
     @ResponseBody
     public R exit(String token) {
-        Log.info("用户退出系统并移除登录信息");
+        Log.info("用户退出登录");
         cacheHandle.removeUserCache(token);
         return R.success();
     }
@@ -124,7 +100,7 @@ public class IndexController extends BaseController {
             return R.error("登录信息不存在，请重新登录");
         }
 
-        Log.info("修改个人资料：userId={}", current.getId());
+        Log.info("修改个人资料，userId={}", current.getId());
 
         if (!ObjectUtils.isEmpty(user.getName())) {
             current.setName(user.getName());
@@ -170,8 +146,8 @@ public class IndexController extends BaseController {
 
         String originalName = file.getOriginalFilename();
         String suffix = ".png";
-        if (originalName != null && originalName.lastIndexOf(".") >= 0) {
-            suffix = originalName.substring(originalName.lastIndexOf("."));
+        if (originalName != null && originalName.lastIndexOf('.') >= 0) {
+            suffix = originalName.substring(originalName.lastIndexOf('.'));
         }
 
         File avatarDir = new File(resolveUploadRoot(), "avatars");
@@ -180,7 +156,7 @@ public class IndexController extends BaseController {
         }
 
         if (user.getAvatar() != null && user.getAvatar().contains("/uploads/avatars/")) {
-            String oldName = user.getAvatar().substring(user.getAvatar().lastIndexOf("/") + 1);
+            String oldName = user.getAvatar().substring(user.getAvatar().lastIndexOf('/') + 1);
             File oldFile = new File(avatarDir, oldName);
             if (oldFile.exists()) {
                 oldFile.delete();

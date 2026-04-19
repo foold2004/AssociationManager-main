@@ -1,5 +1,39 @@
 import http from '@/utils/http';
 
+function objectOrLegacy(args, keys) {
+  if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && !Array.isArray(args[0])) {
+    return args[0];
+  }
+
+  return keys.reduce((result, key, index) => {
+    result[key] = args[index];
+    return result;
+  }, {});
+}
+
+function getSessionToken() {
+  try {
+    return sessionStorage.getItem('token') || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function resolveToken(candidate) {
+  const sessionToken = getSessionToken();
+
+  if (candidate && sessionToken && candidate !== sessionToken) {
+    return sessionToken;
+  }
+
+  return candidate || sessionToken || '';
+}
+
+function withToken(params = {}, candidateToken) {
+  const token = resolveToken(params.token ?? candidateToken);
+  return token ? { ...params, token } : { ...params };
+}
+
 export function login(params) {
   return http.post('/login', params);
 }
@@ -7,7 +41,6 @@ export function login(params) {
 export function logout(token) {
   return http.get('/exit', { params: { token } });
 }
-export const exit = logout;
 
 export function getLoginUser(token) {
   return http.get('/info', { params: { token } });
@@ -16,7 +49,6 @@ export function getLoginUser(token) {
 export function updateLoginUserInfo(params) {
   return http.post('/info', params);
 }
-export const updLoginUserInfo = updateLoginUserInfo;
 
 export function uploadAvatar(token, file) {
   const formData = new FormData();
@@ -36,304 +68,326 @@ export function checkUserPwd(token, oldPwd) {
 export function updateLoginUserPwd(token, password, oldPwd) {
   return http.post('/pwd', { token, password, oldPwd });
 }
-export const updLoginUserPwd = updateLoginUserPwd;
-
-export function getSysNoticeList(token) {
-  return http.get('/sys/notices', { params: { token } });
-}
 
 export function getDemoAccounts() {
   return http.get('/demoAccounts');
 }
 
-export function getPageUsers(pageIndex, pageSize, userName, name, phone, type) {
-  return http.get('/users/page', {
-    params: { pageIndex, pageSize, userName, name, phone, type },
-  });
-}
-
 export function addUsers(params) {
   return http.post('/users/add', params);
 }
-export function getManagers() {
-  return http.get('/users/managers');
+
+export function getPageUsers(...args) {
+  const params = objectOrLegacy(args, ['pageIndex', 'pageSize', 'userName', 'name', 'phone', 'type']);
+  return http.get('/users/page', { params });
 }
 
 export function updateUsers(params) {
   return http.post('/users/upd', params);
 }
-export const updUsers = updateUsers;
 
-export function deleteUsers(id) {
-  return http.post('/users/del', { id });
-}
-export const delUsers = deleteUsers;
-
-export function getAllTypes() {
-  return http.get('/teamTypes/all');
+export function deleteUsers(...args) {
+  const params = objectOrLegacy(args, ['id']);
+  return http.post('/users/del', params);
 }
 
-export function getPageTeamTypes(pageIndex, pageSize, name) {
-  return http.get('/teamTypes/page', {
-    params: { pageIndex, pageSize, name },
-  });
+export function getManagers(params = {}) {
+  return http.get('/users/managers', { params });
+}
+
+export function getAllTypes(params = {}) {
+  return http.get('/teamTypes/all', { params });
+}
+
+export function getPageTeamTypes(...args) {
+  const params = objectOrLegacy(args, ['pageIndex', 'pageSize', 'name']);
+  return http.get('/teamTypes/page', { params });
 }
 
 export function addTeamTypes(params) {
   return http.post('/teamTypes/add', params);
 }
 
-export function updateTeamTypes(params) {
+export function updTeamTypes(params) {
   return http.post('/teamTypes/upd', params);
 }
-export const updTeamTypes = updateTeamTypes;
 
-export function deleteTeamTypes(id) {
-  return http.post('/teamTypes/del', { id });
-}
-export const delTeamTypes = deleteTeamTypes;
-
-export function getAllTeamList() {
-  return http.get('/teams/all');
+export function delTeamTypes(...args) {
+  const params = objectOrLegacy(args, ['id']);
+  return http.post('/teamTypes/del', params);
 }
 
-export function getManTeamList(manId) {
-  return http.get('/teams/man', { params: { manId } });
+export function getAllTeamList(params = {}) {
+  return http.get('/teams/all', { params });
 }
 
-export function getPageTeams(pageIndex, pageSize, token, name, typeId) {
-  return http.get('/teams/page', {
-    params: { pageIndex, pageSize, token, name, typeId },
-  });
+export function getManTeamList(...args) {
+  const rawParams = objectOrLegacy(args, ['manId']);
+  const params = {
+    ...rawParams,
+    manId: rawParams.manId || rawParams.manager,
+  };
+  return http.get('/teams/man', { params });
+}
+
+export function getPageTeams(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'name', 'typeId']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/teams/page', { params });
 }
 
 export function addTeams(params) {
-  return http.post('/teams/add', params);
-}
-export function assignTeamManager(token, teamId, managerId) {
-  return http.post('/teams/assignManager', { token, teamId, managerId });
+  return http.post('/teams/add', withToken(params));
 }
 
 export function updateTeams(params) {
-  return http.post('/teams/upd', params);
+  return http.post('/teams/upd', withToken(params));
 }
-export const updTeams = updateTeams;
 
-export function deleteTeams(token, id) {
-  return http.post('/teams/del', { token, id });
-}
-export const delTeams = deleteTeams;
-
-export function getPageActivities(pageIndex, pageSize, token, teamName, activeName) {
-  return http.get('/activities/page', {
-    params: { pageIndex, pageSize, token, teamName, activeName },
+export function uploadTeamImage(token, teamId, file) {
+  const formData = new FormData();
+  formData.append('token', resolveToken(token));
+  formData.append('teamId', teamId);
+  formData.append('file', file);
+  return http.post('/teams/uploadImage', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
   });
 }
 
-export function addActivities(params) {
-  return http.post('/activities/add', params);
-}
-
-export function updateActivities(params) {
-  return http.post('/activities/upd', params);
-}
-export const updActivities = updateActivities;
-
-export function deleteActivities(token, id) {
-  return http.post('/activities/del', { token, id });
-}
-export const delActivities = deleteActivities;
-
-export function getActiveLogs(activeId) {
-  return http.get('/activeLogs/list', { params: { activeId } });
-}
-
-export function getMyActiveIds(token) {
-  return http.get('/activeLogs/myActiveIds', { params: { token } });
-}
-
-export function getMyActiveStatuses(token) {
-  return http.get('/activeLogs/myStatuses', { params: { token } });
-}
-
-export function addActiveLogs(params) {
-  return http.post('/activeLogs/add', params);
-}
-
-export function deleteActiveLogs(token, id) {
-  return http.post('/activeLogs/del', { token, id });
-}
-export const delActiveLogs = deleteActiveLogs;
-export function updateActiveLogs(params) {
-  return http.post('/activeLogs/upd', params);
-}
-export const updActiveLogs = updateActiveLogs;
-export function getPageActiveLogs(pageIndex, pageSize, token, teamName, activeName, userName, status) {
-  return http.get('/activeLogs/page', {
-    params: { pageIndex, pageSize, token, teamName, activeName, userName, status },
-  });
-}
-
-export function getPageApplyLogs(pageIndex, pageSize, token, teamName, userName) {
-  return http.get('/applyLogs/page', {
-    params: { pageIndex, pageSize, token, teamName, userName },
-  });
+export function deleteTeams(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/teams/del', params);
 }
 
 export function addApplyLogs(params) {
-  return http.post('/applyLogs/add', params);
+  return http.post('/applyLogs/add', withToken(params));
 }
 
-export function getMyPendingApplyTeamIds(token) {
-  return http.get('/applyLogs/myPendingTeamIds', {
-    params: { token },
-  });
+export function getPageApplyLogs(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'teamName', 'userName']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/applyLogs/page', { params });
 }
 
-export function updateApplyLogs(params) {
-  return http.post('/applyLogs/upd', params);
-}
-export const updApplyLogs = updateApplyLogs;
-export function deleteApplyLogs(id) {
-  return http.post('/applyLogs/del', { id });
-}
-export const delApplyLogs = deleteApplyLogs;
-
-export function getPageMembers(pageIndex, pageSize, token, teamName, userName) {
-  return http.get('/members/page', {
-    params: { pageIndex, pageSize, token, teamName, userName },
-  });
+export function updApplyLogs(params) {
+  return http.post('/applyLogs/upd', withToken(params));
 }
 
-export function getMyMemberTeamIds(token) {
-  return http.get('/members/myTeamIds', {
-    params: { token },
-  });
+export function getMyPendingApplyTeamIds(...args) {
+  const rawParams =
+    args.length === 1 && typeof args[0] === 'object' && args[0] !== null && !Array.isArray(args[0])
+      ? args[0]
+      : {};
+  const params = withToken(rawParams, args[0]);
+  return http.get('/applyLogs/myPendingTeamIds', { params });
 }
 
-export function getMemberOptions(token, teamId) {
-  return http.get('/members/options', {
-    params: { token, teamId },
-  });
+export function getMyMemberTeamIds(...args) {
+  const rawParams =
+    args.length === 1 && typeof args[0] === 'object' && args[0] !== null && !Array.isArray(args[0])
+      ? args[0]
+      : {};
+  const params = withToken(rawParams, args[0]);
+  return http.get('/members/myTeamIds', { params });
 }
 
-export function deleteMembers(id) {
-  return http.post('/members/del', { id });
-}
-export const delMembers = deleteMembers;
-export function addMembers(params) {
-  return http.post('/members/add', params);
-}
-export function updateMembers(params) {
-  return http.post('/members/upd', params);
-}
-export const updMembers = updateMembers;
-
-export function getPagePayLogs(pageIndex, pageSize, token, teamName, userName) {
-  return http.get('/payLogs/page', {
-    params: { pageIndex, pageSize, token, teamName, userName },
-  });
+export function getMemberOptions(...args) {
+  const rawParams =
+    args.length === 1 && typeof args[0] !== 'object'
+      ? { teamId: args[0] }
+      : objectOrLegacy(args, ['token', 'teamId']);
+  const params = withToken(rawParams, args[0]);
+  return http.get('/members/options', { params });
 }
 
-export function getPaySummary(token, teamId) {
-  return http.get('/payLogs/summary', {
-    params: { token, teamId },
-  });
+export function getPageMembers(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'teamName', 'userName']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/members/page', { params });
 }
 
-export function addPayLogs(params) {
-  return http.post('/payLogs/add', params);
+export function delMembers(...args) {
+  const params = objectOrLegacy(args, ['id']);
+  return http.post('/members/del', params);
 }
 
-export function updatePayLogs(params) {
-  return http.post('/payLogs/upd', params);
-}
-export const updPayLogs = updatePayLogs;
-
-export function deletePayLogs(token, id) {
-  return http.post('/payLogs/del', { token, id });
-}
-export const delPayLogs = deletePayLogs;
-
-export function getPagePayExpenses(pageIndex, pageSize, token, teamId, title) {
-  return http.get('/payExpenses/page', {
-    params: { pageIndex, pageSize, token, teamId, title },
-  });
+export function getPageActivities(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'teamName', 'activeName']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/activities/page', { params });
 }
 
-export function addPayExpenses(params) {
-  return http.post('/payExpenses/add', params);
+export function addActivities(params) {
+  return http.post('/activities/add', withToken(params));
 }
 
-export function updatePayExpenses(params) {
-  return http.post('/payExpenses/upd', params);
+export function updateActivities(params) {
+  return http.post('/activities/upd', withToken(params));
 }
-export const updPayExpenses = updatePayExpenses;
 
-export function deletePayExpenses(token, id) {
-  return http.post('/payExpenses/del', { token, id });
+export function deleteActivities(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/activities/del', params);
 }
-export const delPayExpenses = deletePayExpenses;
 
-export function getPageNotices(pageIndex, pageSize, token, title, teamName, teamId, systemOnly) {
-  return http.get('/notices/page', {
-    params: { pageIndex, pageSize, token, title, teamName, teamId, systemOnly },
-  });
+export function getPageNotices(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'title', 'teamName', 'teamId', 'systemOnly']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/notices/page', { params });
 }
 
 export function addNotices(params) {
-  return http.post('/notices/add', params);
+  return http.post('/notices/add', withToken(params));
 }
 
 export function updateNotices(params) {
-  return http.post('/notices/upd', params);
-}
-export const updNotices = updateNotices;
-
-export function toggleNoticeTop(token, id, isTop) {
-  return http.post('/notices/top', { token, id, isTop });
+  return http.post('/notices/upd', withToken(params));
 }
 
-export function deleteNotices(token, id) {
-  return http.post('/notices/del', { token, id });
+export function deleteNotices(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/notices/del', params);
 }
-export const delNotices = deleteNotices;
 
-export function getPageRules(pageIndex, pageSize, token, title, teamName) {
-  return http.get('/rules/page', {
-    params: { pageIndex, pageSize, token, title, teamName },
-  });
+export function toggleNoticeTop(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id', 'isTop']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/notices/top', params);
 }
+
+export function getPageRules(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'title', 'teamName']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/rules/page', { params });
+}
+
 export function addRule(params) {
-  return http.post('/rules/add', params);
+  return http.post('/rules/add', withToken(params));
 }
+
 export function updateRule(params) {
-  return http.post('/rules/upd', params);
-}
-export function deleteRule(token, id) {
-  return http.post('/rules/del', { token, id });
+  return http.post('/rules/upd', withToken(params));
 }
 
-export function getPageInteractions(pageIndex, pageSize, token, keyword, teamName) {
-  return http.get('/interactions/page', {
-    params: { pageIndex, pageSize, token, keyword, teamName },
-  });
+export function deleteRule(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/rules/del', params);
 }
+
+export function getPageActiveLogs(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'teamName', 'activeName', 'userName', 'status']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/activeLogs/page', { params });
+}
+
+export function getActiveLogs(...args) {
+  const params = objectOrLegacy(args, ['activeId']);
+  return http.get('/activeLogs/list', { params });
+}
+
+export function getMyActiveStatuses(...args) {
+  const rawParams =
+    args.length === 1 && typeof args[0] === 'object' && args[0] !== null && !Array.isArray(args[0])
+      ? args[0]
+      : {};
+  const params = withToken(rawParams, args[0]);
+  return http.get('/activeLogs/myStatuses', { params });
+}
+
+export function addActiveLogs(params) {
+  return http.post('/activeLogs/add', withToken(params));
+}
+
+export function updateActiveLogs(params) {
+  return http.post('/activeLogs/upd', withToken(params));
+}
+
+export function deleteActiveLogs(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/activeLogs/del', params);
+}
+
+export function getPageInteractions(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'keyword', 'teamName']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/interactions/page', { params });
+}
+
 export function addInteraction(params) {
-  return http.post('/interactions/add', params);
-}
-export function deleteInteraction(token, id) {
-  return http.post('/interactions/del', { token, id });
+  return http.post('/interactions/add', withToken(params));
 }
 
-export function getInteractionComments(token, interactionId) {
-  return http.get('/interactionComments/list', { params: { token, interactionId } });
+export function deleteInteraction(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/interactions/del', params);
+}
+
+export function getInteractionComments(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'interactionId']);
+  const params = withToken(rawParams, args[0]);
+  return http.get('/interactionComments/list', { params });
 }
 
 export function addInteractionComment(params) {
-  return http.post('/interactionComments/add', params);
+  return http.post('/interactionComments/add', withToken(params));
 }
 
-export function deleteInteractionComment(token, id) {
-  return http.post('/interactionComments/del', { token, id });
+export function deleteInteractionComment(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/interactionComments/del', params);
+}
+
+export function getPagePayLogs(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'teamName', 'userName']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/payLogs/page', { params });
+}
+
+export function getPaySummary(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'teamId']);
+  const params = withToken(rawParams, args[0]);
+  return http.get('/payLogs/summary', { params });
+}
+
+export function addPayLogs(params) {
+  return http.post('/payLogs/add', withToken(params));
+}
+
+export function updatePayLogs(params) {
+  return http.post('/payLogs/upd', withToken(params));
+}
+
+export function deletePayLogs(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/payLogs/del', params);
+}
+
+export function getPagePayExpenses(...args) {
+  const rawParams = objectOrLegacy(args, ['pageIndex', 'pageSize', 'token', 'teamId', 'title']);
+  const params = withToken(rawParams, args[2]);
+  return http.get('/payExpenses/page', { params });
+}
+
+export function addPayExpenses(params) {
+  return http.post('/payExpenses/add', withToken(params));
+}
+
+export function updatePayExpenses(params) {
+  return http.post('/payExpenses/upd', withToken(params));
+}
+
+export function deletePayExpenses(...args) {
+  const rawParams = objectOrLegacy(args, ['token', 'id']);
+  const params = withToken(rawParams, args[0]);
+  return http.post('/payExpenses/del', params);
 }

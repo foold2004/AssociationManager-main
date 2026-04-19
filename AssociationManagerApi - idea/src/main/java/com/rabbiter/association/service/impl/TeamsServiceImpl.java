@@ -210,6 +210,7 @@ public class TeamsServiceImpl implements TeamsService {
             temp.put("createTime", teams.getCreateTime());
             temp.put("total", teams.getTotal());
             temp.put("intro", teams.getIntro());
+            temp.put("images", teams.getImages());
 
             Users user = usersDao.selectById(teams.getManager());
             temp.put("manager", teams.getManager());

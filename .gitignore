@@ -10,6 +10,8 @@ target/
 
 AssociationManagerVue/node_modules/
 AssociationManagerVue/dist/
+.pnpm-store/
+AssociationManagerApi - idea/uploads/
 
 .DS_Store
 Thumbs.db

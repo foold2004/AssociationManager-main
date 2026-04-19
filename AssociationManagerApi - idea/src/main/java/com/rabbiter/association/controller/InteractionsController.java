@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/interactions")
-public class InteractionsController extends BaseController {
+public class InteractionsController {
 
     @Autowired
     private CacheHandle cacheHandle;

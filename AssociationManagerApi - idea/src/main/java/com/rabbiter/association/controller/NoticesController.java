@@ -1,10 +1,10 @@
 package com.rabbiter.association.controller;
 
+import com.rabbiter.association.dao.NoticesDao;
+import com.rabbiter.association.dao.TeamsDao;
 import com.rabbiter.association.entity.Notices;
 import com.rabbiter.association.entity.Teams;
 import com.rabbiter.association.entity.Users;
-import com.rabbiter.association.dao.TeamsDao;
-import com.rabbiter.association.dao.NoticesDao;
 import com.rabbiter.association.handle.CacheHandle;
 import com.rabbiter.association.msg.PageData;
 import com.rabbiter.association.msg.R;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/notices")
-public class NoticesController extends BaseController {
+public class NoticesController {
 
     protected static final Logger Log = LoggerFactory.getLogger(NoticesController.class);
 
@@ -44,18 +44,6 @@ public class NoticesController extends BaseController {
     @Autowired
     private NoticesDao noticesDao;
 
-    @RequestMapping("")
-    public String index() {
-        return "pages/Notices";
-    }
-
-    @GetMapping("/info")
-    @ResponseBody
-    public R getInfo(String id) {
-        Notices notices = noticesService.getOne(id);
-        return R.successData(notices);
-    }
-
     @GetMapping("/page")
     @ResponseBody
     public R getPageInfos(Long pageIndex, Long pageSize, String token, String title, String teamName, String teamId, Integer systemOnly) {
@@ -66,13 +54,10 @@ public class NoticesController extends BaseController {
 
         PageData page;
         if (user.getType() == 0) {
-            Log.info("分页查询通知信息，pageIndex={}, pageSize={}, title={}, teamName={}", pageIndex, pageSize, title, teamName);
             page = noticesService.getPageAll(pageIndex, pageSize, title, teamName, teamId, systemOnly);
         } else if (user.getType() == 1) {
-            Log.info("分页查询社团管理员相关通知，pageIndex={}, pageSize={}, title={}, teamName={}", pageIndex, pageSize, title, teamName);
             page = noticesService.getPageById(pageIndex, pageSize, user.getId(), title, teamName, teamId, systemOnly);
         } else {
-            Log.info("分页查询学生相关通知，pageIndex={}, pageSize={}, title={}, teamName={}", pageIndex, pageSize, title, teamName);
             page = noticesService.getPageByMemberId(pageIndex, pageSize, user.getId(), title, teamName, teamId, systemOnly);
         }
 
@@ -107,11 +92,11 @@ public class NoticesController extends BaseController {
         if (notices.getIsTop() == null) {
             notices.setIsTop(0);
         }
-        if (notices.getIsTop() == 1 && (ObjectUtils.isEmpty(user) || user.getType() != 0)) {
-            return R.warn("只有系统管理员可以发布置顶消息");
+        if (notices.getIsTop() == 1 && user.getType() != 0) {
+            return R.warn("只有系统管理员可以发布置顶通知");
         }
 
-        Log.info("新增通知记录: {}", notices);
+        Log.info("新增通知：{}", notices);
         noticesService.add(notices);
         return R.success();
     }
@@ -139,11 +124,11 @@ public class NoticesController extends BaseController {
                 return R.warn("只能编辑自己社团的通知");
             }
         }
-        if (notices.getIsTop() != null && notices.getIsTop() == 1 && (ObjectUtils.isEmpty(user) || user.getType() != 0)) {
-            return R.warn("只有系统管理员可以设置置顶消息");
+        if (notices.getIsTop() != null && notices.getIsTop() == 1 && user.getType() != 0) {
+            return R.warn("只有系统管理员可以设置置顶");
         }
 
-        Log.info("修改通知记录: {}", notices);
+        Log.info("修改通知：{}", notices);
         noticesService.update(notices);
         return R.success();
     }
@@ -156,7 +141,7 @@ public class NoticesController extends BaseController {
             return R.error("登录信息不存在，请重新登录");
         }
         if (user.getType() != 0) {
-            return R.warn("只有系统管理员可以置顶消息");
+            return R.warn("只有系统管理员可以置顶通知");
         }
 
         Notices notices = noticesService.getOne(id);

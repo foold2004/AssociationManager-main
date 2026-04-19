@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/rules")
-public class RulesController extends BaseController {
+public class RulesController {
 
     @Autowired
     private CacheHandle cacheHandle;

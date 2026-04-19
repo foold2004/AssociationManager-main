@@ -1,21 +1,16 @@
-import Vue from 'vue';
-import Antd from 'ant-design-vue';
-import 'ant-design-vue/dist/antd.css';
-import ElementUI from 'element-ui';
-import 'element-ui/lib/theme-chalk/index.css';
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import ArcoVue from '@arco-design/web-vue';
+import '@arco-design/web-vue/dist/arco.css';
 
 import App from './App.vue';
 import router from './router';
-import store from './store';
-import '@/utils/http';
-import './assets/app.css';
+import './styles/index.scss';
 
-Vue.use(Antd);
-Vue.use(ElementUI);
-Vue.config.productionTip = false;
+const app = createApp(App);
 
-new Vue({
-  router,
-  store,
-  render: (h) => h(App),
-}).$mount('#app');
+app.use(createPinia());
+app.use(router);
+app.use(ArcoVue);
+
+app.mount('#app');

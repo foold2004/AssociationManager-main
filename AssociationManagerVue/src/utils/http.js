@@ -1,7 +1,7 @@
 import axios from 'axios';
 import qs from 'qs';
-import { message } from 'ant-design-vue';
-import store from '@/store';
+import { Message } from '@arco-design/web-vue';
+import { useAuthStore } from '@/stores/auth';
 
 const service = axios.create({
   baseURL: '/association',
@@ -24,13 +24,14 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response) => {
     const payload = response.data || {};
+
     if (payload.code === 2) {
-      message.error(payload.msg || '请求失败');
+      Message.error(payload.msg || '请求失败');
       return Promise.reject(payload);
     }
 
-    if (payload.code === 1) {
-      message.warning(payload.msg || '操作提醒');
+    if (payload.code === 1 && payload.msg) {
+      Message.warning(payload.msg);
     }
 
     return payload;
@@ -39,12 +40,17 @@ service.interceptors.response.use(
     const msgText =
       (error.response && error.response.data && error.response.data.msg) ||
       error.message ||
-      '网络异常';
+      '网络异常，请稍后重试';
 
-    message.error(msgText);
+    Message.error(msgText);
 
-    if (msgText.indexOf('登录') >= 0) {
-      store.commit('clearSession');
+    if (msgText.includes('登录')) {
+      try {
+        useAuthStore().clearSession();
+      } catch (storeError) {
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+      }
     }
 
     return Promise.reject(error);

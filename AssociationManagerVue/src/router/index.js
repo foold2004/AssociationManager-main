@@ -1,11 +1,8 @@
-import Vue from 'vue';
-import VueRouter from 'vue-router';
-import store from '@/store';
+import { createRouter, createWebHashHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
-Vue.use(VueRouter);
-
-const router = new VueRouter({
-  mode: 'hash',
+const router = createRouter({
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
@@ -14,30 +11,30 @@ const router = new VueRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('@/views/LoginPage.vue'),
+      component: () => import('@/views/auth/LoginView.vue'),
+      meta: { guestOnly: true },
     },
     {
-      path: '/app',
-      name: 'dashboard',
-      component: () => import('@/views/DashboardPage.vue'),
+      path: '/app/:module?',
+      name: 'app',
+      component: () => import('@/layouts/AppLayout.vue'),
       meta: { requiresAuth: true },
     },
   ],
 });
 
-router.beforeEach((to, from, next) => {
-  const token = store.getters.token;
-  if (to.meta.requiresAuth && !token) {
-    next('/login');
-    return;
+router.beforeEach((to) => {
+  const authStore = useAuthStore();
+
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    return { name: 'login' };
   }
 
-  if (to.path === '/login' && token) {
-    next('/app');
-    return;
+  if (to.meta.guestOnly && authStore.isAuthenticated) {
+    return { name: 'app' };
   }
 
-  next();
+  return true;
 });
 
 export default router;

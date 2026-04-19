@@ -31,7 +31,7 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/payLogs")
-public class PayLogsController extends BaseController {
+public class PayLogsController {
 
     protected static final Logger Log = LoggerFactory.getLogger(PayLogsController.class);
 
@@ -55,18 +55,6 @@ public class PayLogsController extends BaseController {
 
     @Autowired
     private PayExpensesDao payExpensesDao;
-
-    @RequestMapping("")
-    public String index() {
-        return "pages/PayLogs";
-    }
-
-    @GetMapping("/info")
-    @ResponseBody
-    public R getInfo(String id) {
-        Log.info("查询指定缴费记录，ID：{}", id);
-        return R.successData(payLogsService.getOne(id));
-    }
 
     @GetMapping("/page")
     @ResponseBody
@@ -93,22 +81,22 @@ public class PayLogsController extends BaseController {
     public R getSummary(String token, String teamId) {
         Users user = getLoginUser(token);
         if (ObjectUtils.isEmpty(user)) {
-            return R.error("鐧诲綍淇℃伅涓嶅瓨鍦紝璇烽噸鏂扮櫥褰?");
+            return R.error("登录信息不存在，请重新登录");
         }
 
         if (!ObjectUtils.isEmpty(teamId)) {
             Teams team = teamsService.getOne(teamId);
             if (ObjectUtils.isEmpty(team)) {
-                return R.warn("绀惧洟淇℃伅涓嶅瓨鍦?");
+                return R.warn("社团不存在");
             }
             if (user.getType() == 1 && !user.getId().equals(team.getManager())) {
-                return R.warn("浣犲彧鑳芥煡鐪嬭嚜宸辫礋璐ｇぞ鍥㈢殑璐圭敤鎯呭喌");
+                return R.warn("你只能查看自己负责社团的收支汇总");
             }
             if (user.getType() == 2) {
                 QueryWrapper<Members> memberQuery = new QueryWrapper<Members>();
                 memberQuery.eq("team_id", teamId).eq("user_id", user.getId());
                 if (membersDao.selectCount(memberQuery) <= 0) {
-                    return R.warn("浣犲彧鑳芥煡鐪嬭嚜宸卞弬涓庣ぞ鍥㈢殑璐圭敤鎯呭喌");
+                    return R.warn("你只能查看自己加入社团的收支汇总");
                 }
             }
         }
@@ -126,13 +114,13 @@ public class PayLogsController extends BaseController {
             expense = payExpensesDao.sumTotalByMember(user.getId(), teamId);
         }
 
-        double incomeVal = income == null ? 0 : income;
-        double expenseVal = expense == null ? 0 : expense;
+        double incomeValue = income == null ? 0 : income;
+        double expenseValue = expense == null ? 0 : expense;
 
         Map<String, Object> result = new HashMap<String, Object>();
-        result.put("income", incomeVal);
-        result.put("expense", expenseVal);
-        result.put("balance", incomeVal - expenseVal);
+        result.put("income", incomeValue);
+        result.put("expense", expenseValue);
+        result.put("balance", incomeValue - expenseValue);
         return R.successData(result);
     }
 
@@ -222,7 +210,7 @@ public class PayLogsController extends BaseController {
             return permissionResult;
         }
 
-        Log.info("删除缴费记录，ID：{}", id);
+        Log.info("删除缴费记录，ID={}", id);
         payLogsService.delete(payLogs);
         return R.success();
     }
@@ -237,7 +225,7 @@ public class PayLogsController extends BaseController {
     private R validateEditPermission(Users operator, String teamId) {
         Teams team = teamsService.getOne(teamId);
         if (ObjectUtils.isEmpty(team)) {
-            return R.warn("社团信息不存在");
+            return R.warn("社团不存在");
         }
         if (operator.getType() == 1 && !operator.getId().equals(team.getManager())) {
             return R.warn("你只能维护自己负责社团的缴费记录");
@@ -255,7 +243,7 @@ public class PayLogsController extends BaseController {
 
         Teams team = teamsService.getOne(teamId);
         if (ObjectUtils.isEmpty(team)) {
-            return R.warn("社团信息不存在");
+            return R.warn("社团不存在");
         }
         if (operator.getType() == 1 && !operator.getId().equals(team.getManager())) {
             return R.warn("你只能维护自己负责社团的缴费记录");

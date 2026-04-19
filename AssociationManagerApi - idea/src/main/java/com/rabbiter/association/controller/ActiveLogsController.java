@@ -31,11 +31,10 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/activeLogs")
-public class ActiveLogsController extends BaseController {
+public class ActiveLogsController {
 
     protected static final Logger Log = LoggerFactory.getLogger(ActiveLogsController.class);
 
@@ -59,17 +58,6 @@ public class ActiveLogsController extends BaseController {
 
     @Autowired
     private TeamsService teamsService;
-
-    @RequestMapping("")
-    public String index() {
-        return "pages/ActiveLogs";
-    }
-
-    @GetMapping("/info")
-    @ResponseBody
-    public R getInfo(String id) {
-        return R.successData(activeLogsService.getOne(id));
-    }
 
     @GetMapping("/list")
     @ResponseBody
@@ -96,21 +84,6 @@ public class ActiveLogsController extends BaseController {
         return R.successData(page);
     }
 
-    @GetMapping("/myActiveIds")
-    @ResponseBody
-    public R getMyActiveIds(String token) {
-        Users user = usersService.getOne(cacheHandle.getUserInfoCache(token));
-        if (user == null) {
-            return R.error("登录信息不存在，请重新登录");
-        }
-
-        QueryWrapper<ActiveLogs> qw = new QueryWrapper<ActiveLogs>();
-        qw.eq("user_id", user.getId());
-        qw.eq("status", 1);
-        List<String> activeIds = activeLogsDao.selectList(qw).stream().map(ActiveLogs::getActiveId).collect(Collectors.toList());
-        return R.successData(activeIds);
-    }
-
     @GetMapping("/myStatuses")
     @ResponseBody
     public R getMyStatuses(String token) {
@@ -119,10 +92,11 @@ public class ActiveLogsController extends BaseController {
             return R.error("登录信息不存在，请重新登录");
         }
 
-        QueryWrapper<ActiveLogs> qw = new QueryWrapper<ActiveLogs>();
-        qw.eq("user_id", user.getId());
-        qw.orderByDesc("create_time");
-        List<ActiveLogs> logs = activeLogsDao.selectList(qw);
+        QueryWrapper<ActiveLogs> wrapper = new QueryWrapper<ActiveLogs>();
+        wrapper.eq("user_id", user.getId());
+        wrapper.orderByDesc("create_time");
+        List<ActiveLogs> logs = activeLogsDao.selectList(wrapper);
+
         Map<String, Integer> statusMap = new HashMap<String, Integer>();
         for (ActiveLogs log : logs) {
             if (!statusMap.containsKey(log.getActiveId())) {
@@ -165,7 +139,7 @@ public class ActiveLogsController extends BaseController {
         }
 
         if (!activeLogsService.isActive(activeLogs.getActiveId(), user.getId())) {
-            return R.warn("你已提交过该活动的报名申请");
+            return R.warn("你已经提交过该活动的报名申请");
         }
         if (activity.getMaxTotal() != null && activity.getTotal() != null && activity.getTotal() >= activity.getMaxTotal()) {
             return R.warn("活动人数已满");
@@ -227,9 +201,8 @@ public class ActiveLogsController extends BaseController {
         }
 
         if (activeLogs.getStatus() != null && activeLogs.getStatus() == 1) {
-            if (activity.getMaxTotal() != null && activity.getTotal() != null
-                    && activity.getTotal() >= activity.getMaxTotal()
-                    && (oldLog.getStatus() == null || oldLog.getStatus() != 1)) {
+            boolean wasApproved = oldLog.getStatus() != null && oldLog.getStatus() == 1;
+            if (activity.getMaxTotal() != null && activity.getTotal() != null && activity.getTotal() >= activity.getMaxTotal() && !wasApproved) {
                 return R.warn("活动人数已满，无法通过更多报名");
             }
         }
@@ -281,7 +254,7 @@ public class ActiveLogsController extends BaseController {
         try {
             return DateUtils.parseDate(enrollEndTime, DateUtils.DATETIME_DEFAULT_FORMAT)
                     .before(DateUtils.parseDate(DateUtils.getNowDate(), DateUtils.DATETIME_DEFAULT_FORMAT));
-        } catch (ParseException e) {
+        } catch (ParseException error) {
             return false;
         }
     }

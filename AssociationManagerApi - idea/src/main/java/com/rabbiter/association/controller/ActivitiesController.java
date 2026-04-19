@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/activities")
-public class ActivitiesController extends BaseController {
+public class ActivitiesController {
 
     protected static final Logger Log = LoggerFactory.getLogger(ActivitiesController.class);
 
@@ -37,18 +37,6 @@ public class ActivitiesController extends BaseController {
 
     @Autowired
     private TeamsService teamsService;
-
-    @RequestMapping("")
-    public String index() {
-        return "pages/Activities";
-    }
-
-    @GetMapping("/info")
-    @ResponseBody
-    public R getInfo(String id) {
-        Log.info("查询指定活动信息，ID：{}", id);
-        return R.successData(activitiesService.getOne(id));
-    }
 
     @GetMapping("/page")
     @ResponseBody
@@ -148,7 +136,7 @@ public class ActivitiesController extends BaseController {
             return R.warn("当前角色不能删除活动");
         }
 
-        Log.info("删除活动信息，ID：{}", id);
+        Log.info("删除活动信息，ID={}", id);
         activitiesService.delete(activities);
         return R.success();
     }

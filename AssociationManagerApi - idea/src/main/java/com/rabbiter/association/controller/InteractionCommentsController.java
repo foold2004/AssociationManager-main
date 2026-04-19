@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/interactionComments")
-public class InteractionCommentsController extends BaseController {
+public class InteractionCommentsController {
 
     @Autowired
     private CacheHandle cacheHandle;
