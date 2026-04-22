@@ -2,7 +2,6 @@
   <div class="page-block">
     <div class="page-toolbar">
       <h2 class="page-section-title">个人中心</h2>
-      <div class="page-section-subtitle">在这里维护头像、基础资料和登录密码。</div>
     </div>
 
     <a-grid :cols="24" :col-gap="16" :row-gap="16">

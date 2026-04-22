@@ -2,7 +2,6 @@ package com.rabbiter.association.controller;
 
 import com.rabbiter.association.entity.Users;
 import com.rabbiter.association.handle.CacheHandle;
-import com.rabbiter.association.msg.PageData;
 import com.rabbiter.association.msg.R;
 import com.rabbiter.association.service.UsersService;
 import com.rabbiter.association.utils.IDUtils;
@@ -21,10 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/")
@@ -40,18 +35,6 @@ public class IndexController {
 
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
-
-    @GetMapping("/demoAccounts")
-    @ResponseBody
-    public R getDemoAccounts() {
-        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
-
-        appendDemoUsers(result, 0, 1);
-        appendDemoUsers(result, 1, 2);
-        appendDemoUsers(result, 2, 3);
-
-        return R.successData(result);
-    }
 
     @PostMapping("/login")
     @ResponseBody
@@ -223,49 +206,5 @@ public class IndexController {
             return configured;
         }
         return new File(System.getProperty("user.dir"), uploadDir);
-    }
-
-    private void appendDemoUsers(List<Map<String, Object>> result, Integer type, long limit) {
-        Users query = new Users();
-        query.setType(type);
-        query.setStatus(1);
-        PageData pageData = usersService.getPageInfo(1L, 50L, query);
-        List<?> rawList = pageData.getData();
-        if (rawList == null) {
-            return;
-        }
-
-        long count = 0L;
-        for (Object item : rawList) {
-            if (count >= limit) {
-                break;
-            }
-            if (!(item instanceof Map)) {
-                continue;
-            }
-            Map<?, ?> source = (Map<?, ?>) item;
-            LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
-            row.put("id", source.get("id"));
-            row.put("userName", source.get("userName"));
-            row.put("name", source.get("name"));
-            row.put("type", source.get("type"));
-            row.put("roleLabel", getRoleLabel(source.get("type")));
-            result.add(row);
-            count += 1;
-        }
-    }
-
-    private String getRoleLabel(Object type) {
-        if (type == null) {
-            return "未分配身份";
-        }
-        Integer value = Integer.valueOf(String.valueOf(type));
-        if (value == 0) {
-            return "系统管理员";
-        }
-        if (value == 1) {
-            return "社团管理员";
-        }
-        return "学生";
     }
 }

@@ -69,10 +69,6 @@ export function updateLoginUserPwd(token, password, oldPwd) {
   return http.post('/pwd', { token, password, oldPwd });
 }
 
-export function getDemoAccounts() {
-  return http.get('/demoAccounts');
-}
-
 export function addUsers(params) {
   return http.post('/users/add', params);
 }

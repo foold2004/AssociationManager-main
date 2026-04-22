@@ -3,9 +3,7 @@
     <section class="page-block hero-bar">
       <div>
         <h2 class="page-section-title">欢迎回来，{{ displayName }}</h2>
-        <div class="page-section-subtitle">{{ roleLabel }}</div>
       </div>
-      <a-button :loading="loading" @click="loadOverview">刷新数据</a-button>
     </section>
 
     <section class="stats-grid">

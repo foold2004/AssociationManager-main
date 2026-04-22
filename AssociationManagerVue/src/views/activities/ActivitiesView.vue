@@ -46,7 +46,6 @@
             <a-button v-if="canReviewLogs" @click="router.push('/app/active-logs')">报名审批</a-button>
           </div>
         </div>
-        <div v-if="activityScopeHint" class="scope-hint">{{ activityScopeHint }}</div>
       </div>
     </section>
 
@@ -300,15 +299,6 @@ const userType = computed(() => Number(authStore.userType));
 const canCreateActivity = computed(() => userType.value === 1);
 const canReviewLogs = computed(() => userType.value === 0 || userType.value === 1);
 const canSignUp = computed(() => userType.value === 1 || userType.value === 2);
-const activityScopeHint = computed(() => {
-  if (userType.value === 1) {
-    return '可查看自己负责或已加入社团的活动；只能审批自己负责社团的报名。';
-  }
-  if (userType.value === 2) {
-    return '可查看自己已加入社团的活动，并提交报名申请。';
-  }
-  return '';
-});
 const roleLabel = computed(() => {
   if (userType.value === 0) return '系统管理员';
   if (userType.value === 1) return '社团管理员';
@@ -549,13 +539,6 @@ onMounted(boot);
 </script>
 
 <style scoped>
-.scope-hint {
-  margin-top: 14px;
-  color: #4f6788;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
 .table-footer {
   display: flex;
   justify-content: flex-end;
